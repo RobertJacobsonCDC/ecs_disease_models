@@ -1,0 +1,21 @@
+[package]
+name    = "ecs_disease_models"
+authors = ["Robert Jacobson <rjacobson@cdc.gov>"]
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0"
+repository = "https://github.com/RobertJacobsonCDC/actor_model_demo"
+
+[dependencies]
+bevy_ecs      = "0.15.0" # Industrial strength ECS
+ordered-float = "4.6.0"   # Hashable floats that implement `Eq`
+rand          = "0.9.0-beta.1"
+rand_distr    = "0.5.0-beta.2"
+serde = { version = "1.0.216", features = ["derive"] }
+csv = "1.3.1"
+
+
+[features]
+default = ["print_messages"]
+
+print_messages = []
