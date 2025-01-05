@@ -1,5 +1,7 @@
-use bevy_ecs::prelude::*;
-
+use bevy_ecs::{
+  prelude::*,
+  schedule::SystemConfigs
+};
 use rand::{
   rngs::SmallRng,
   SeedableRng
@@ -32,9 +34,10 @@ impl RngResource {
 
 // ToDo: Do something better with the initial seed. There's a half-hearted attempt littered throughout this demo.
 impl Module for RngResource {
-  fn initialize_with_world(world: &mut World, _schedule: &mut Schedule) {
-    world.insert_resource(RngResource::with_random_seed(42));
+  fn initialize_with_world(self, world: &mut World) -> Option<SystemConfigs> {
+    world.insert_resource(self);
     #[cfg(feature = "print_messages")]
     println!("Initialized module Random");
+    None // No systems
   }
 }

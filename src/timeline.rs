@@ -19,7 +19,7 @@ use bevy_ecs::{
   prelude::*,
   // system::ExclusiveSystemParamFunction
 };
-
+use bevy_ecs::schedule::SystemConfigs;
 use crate::{
   model::{ExecutionPhase, ModelControl},
   module::Module,
@@ -80,15 +80,15 @@ impl Timeline {
 }
 
 impl Module for Timeline {
-  fn initialize_with_world(world: &mut World, schedule: &mut Schedule) {
+  fn initialize_with_world(self, world: &mut World) -> Option<SystemConfigs> {
+    #[cfg(feature = "print_messages")]
+    println!("Initialized module Timeline");
+
     // Insert the Timeline resource into the World
     world.insert_resource(Timeline::default());
 
     // There is only one system in our implementation, namely the one that runs (at most) a single event.
-    schedule.add_systems(run_timeline_event.in_set(ExecutionPhase::Normal));
-
-    #[cfg(feature = "print_messages")]
-    println!("Initialized module Timeline");
+    Some(run_timeline_event.in_set(ExecutionPhase::Normal))
   }
 }
 

@@ -5,6 +5,7 @@ The _infection manager_ is the business logic related to how existing infections
 */
 
 use bevy_ecs::prelude::*;
+use bevy_ecs::schedule::SystemConfigs;
 use rand::distr::Distribution;
 use rand_distr::Exp;
 
@@ -15,18 +16,15 @@ use ecs_disease_models::{
   timeline::Timeline,
   timeline_event::Event,
 };
-use crate::{
-  InfectionStatus,
-  INFECTION_DURATION,
-  transmission_manager::TransmissionManager
-};
 
+use crate::InfectionStatus;
 
 /// A system that handles the case when a person transitions from `Susceptible` to `Infected`, which occurs
 /// if and only if an entity is spawned.
 fn schedule_recovery(
   mut timeline: ResMut<Timeline>,
   mut rng: ResMut<RngResource>,
+  this: Res<InfectionManager>,
   query: Query<(&InfectionStatus, Entity), Added<InfectionStatus>>,
 ) {
   // New entities should only ever be spawned with the `InfectionStation::Infected` status in this model.
@@ -34,7 +32,7 @@ fn schedule_recovery(
   for (new_status, entity) in query.iter() {
     if *new_status == InfectionStatus::Infected{
       // When a new infection occurs, we schedule the person's recovery on the `Timeline`.
-      let time = timeline.now() + Exp::new(1.0 / INFECTION_DURATION).unwrap().sample(&mut rng.rng);
+      let time = timeline.now() + Exp::new(1.0 / this.infection_duration).unwrap().sample(&mut rng.rng);
 
       timeline.push(
         Event{
@@ -55,19 +53,26 @@ fn schedule_recovery(
   }
 }
 
-// Holds no state
-#[derive(Resource)]
-pub struct InfectionManager;
+#[derive(Resource, Copy, Clone, Debug)]
+pub struct InfectionManager {
+  infection_duration: f64
+}
+
+impl InfectionManager {
+  pub fn new(infection_duration: f64) -> InfectionManager {
+    InfectionManager{ infection_duration }
+  }
+}
 
 impl Module for InfectionManager {
-  fn initialize_with_world(world: &mut World, schedule: &mut Schedule) {
-    // Insert a new instance into the world
-    world.insert_resource(TransmissionManager);
-
-    // Schedule the listener for new infections
-    schedule.add_systems(schedule_recovery.in_set(ExecutionPhase::Normal));
-
+  fn initialize_with_world(self, world: &mut World) -> Option<SystemConfigs> {
     #[cfg(feature = "print_messages")]
     println!("Initialized module InfectionManager");
+
+    // Insert a new instance into the world
+    world.insert_resource(self);
+
+    // Schedule the listener for new infections
+    Some(schedule_recovery.in_set(ExecutionPhase::Normal))
   }
 }

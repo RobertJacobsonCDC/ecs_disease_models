@@ -7,10 +7,12 @@ The `IncidenceReporter` module listens for status changes and records them to a 
 use std::{
   fs::File,
   path::PathBuf,
-  // io::Write
+  fmt::{Display, Formatter}
 };
-use std::fmt::{Display, Formatter};
-use bevy_ecs::prelude::*;
+use bevy_ecs::{
+  prelude::*,
+  schedule::SystemConfigs
+};
 use serde::{Deserialize, Serialize};
 use csv::Writer;
 
@@ -94,18 +96,14 @@ impl Drop for IncidenceReporter {
 
 
 impl Module for IncidenceReporter {
-  fn initialize_with_world(world: &mut World, schedule: &mut Schedule) {
-    let reporter = IncidenceReporter::new("./examples/basic-infection/incidence_report.csv");
-
-    world.insert_resource(reporter);
-
-    // Also set up change monitors that keep these statistics up to date.
-    schedule.add_systems(
-      track_status_changes.in_set(ExecutionPhase::Normal)
-    );
-
+  fn initialize_with_world(self, world: &mut World) -> Option<SystemConfigs> {
     #[cfg(feature = "print_messages")]
     println!("Initialized module PopulationStatistics");
+
+    world.insert_resource(self);
+
+    // Also set up change monitors that keep these statistics up to date.
+    Some(track_status_changes.in_set(ExecutionPhase::Normal))
   }
 }
 

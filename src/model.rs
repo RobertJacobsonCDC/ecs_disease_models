@@ -62,6 +62,10 @@ impl Default for Model {
 
 impl Model {
   pub fn new() -> Self {
+    Self::with_random_seed(42)
+  }
+
+  pub fn with_random_seed(seed: u64) -> Self {
     let mut model = Model {
       schedule: Schedule::default(),
       world: World::default(),
@@ -88,16 +92,18 @@ impl Model {
     );
 
     // Every `World` gets these modules
-    model.add_module::<Timeline>();
-    model.add_module::<RngResource>();
+    model.add_module(Timeline::default());
+    model.add_module(RngResource::with_random_seed(seed));
 
     model
   }
 
   /// Adds the module `M` to this model. Notice that `M` is a generic parameter. The model will call the static
   /// constructor of `M` to create a new instance of the model.
-  pub fn add_module<M: Module>(&mut self) {
-    M::initialize_with_world(&mut self.world, &mut self.schedule);
+  pub fn add_module<M: Module>(&mut self, module: M) {
+    if let Some(systems) = module.initialize_with_world(&mut self.world) {
+      self.schedule.add_systems(systems);
+    }
   }
 
 

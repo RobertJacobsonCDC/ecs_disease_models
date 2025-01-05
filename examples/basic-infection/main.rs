@@ -48,14 +48,16 @@ mod infection_manager;
 mod incidence_reporter;
 
 use std::fmt::{Display, Formatter};
-use bevy_ecs::prelude::*;
 
+use bevy_ecs::prelude::*;
 use ordered_float::OrderedFloat;
 use serde::{Deserialize, Serialize};
+
 use ecs_disease_models::{
   model::Model,
   timeline::Time
 };
+
 use crate::{
   population_statistics::PopulationStatistics,
   infection_manager::InfectionManager,
@@ -63,11 +65,12 @@ use crate::{
   incidence_reporter::IncidenceReporter
 };
 
-pub static POPULATION        : u32  = 1000;
-pub static SEED              : u64  = 123;
-pub static MAX_TIME          : Time = OrderedFloat(303.0);
-pub static FOI               : f64  = 0.1;
-pub static INFECTION_DURATION: f64  = 5.0;
+static POPULATION        : u32  = 1000;
+static SEED              : u64  = 123;
+static MAX_TIME          : Time = OrderedFloat(303.0);
+static FOI               : f64  = 0.1;
+static INFECTION_DURATION: f64  = 5.0;
+static OUTPUT_FILE       : &'static str = "./examples/basic-infection/incidence_report.csv";
 
 /**
 All people have exactly one of these states. In fact, because this is the only property
@@ -91,12 +94,12 @@ impl Display for InfectionStatus {
 
 
 fn main() {
-  let mut model = Model::new();
+  let mut model = Model::with_random_seed(SEED);
   // `Model`'s constructor automatically adds the `Random` and `Timeline` modules.
-  model.add_module::<PopulationStatistics>();
-  model.add_module::<TransmissionManager>();
-  model.add_module::<InfectionManager>();
-  model.add_module::<IncidenceReporter>();
+  model.add_module(PopulationStatistics::with_size(POPULATION));
+  model.add_module(TransmissionManager::new(MAX_TIME, FOI));
+  model.add_module(InfectionManager::new(INFECTION_DURATION));
+  model.add_module(IncidenceReporter::new(OUTPUT_FILE));
 
   model.run()
 }

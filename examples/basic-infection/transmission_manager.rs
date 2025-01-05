@@ -5,6 +5,7 @@ The _transmission manager_ is the business logic related to how new infections o
 */
 
 use bevy_ecs::prelude::*;
+use bevy_ecs::schedule::SystemConfigs;
 use ordered_float::OrderedFloat;
 use rand::Rng;
 use rand_distr::{Distribution, Exp};
@@ -15,12 +16,10 @@ use ecs_disease_models::{
   timeline::Timeline,
   timeline_event
 };
-
+use ecs_disease_models::timeline::Time;
 use crate::{
   population_statistics::PopulationStatistics,
   InfectionStatus,
-  FOI,
-  MAX_TIME
 };
 
 
@@ -32,11 +31,17 @@ fn attempt_infection(world: &mut World) {
   // print!("Attempting infection... ");
 
   // We scope the mutable barrows of `world` so the compiler doesn't complain. Hence, the predeclarations.
+  // Alternatively we could have used `world.resource_scope(..)`.
 
   let mut stats: PopulationStatistics;
   let uniform_sample: f64;
   let exponential_sample: f64;
   let next_attempt_time: OrderedFloat<f64>;
+  let this: TransmissionManager;
+
+  {
+    this = world.get_resource::<TransmissionManager>().unwrap().clone();
+  }
 
   { // scope of stats
     stats = world.get_resource::<PopulationStatistics>().unwrap().clone();
@@ -49,7 +54,7 @@ fn attempt_infection(world: &mut World) {
     // Sample uniformly from [0.0, 1.0). This is used to determine if we span an infection.
     uniform_sample =  rng_resource.rng.random::<f64>();
     // While we have the RNG in scope, we sample the exponential distribution for use below.
-    exponential_sample = Exp::new(FOI).unwrap().sample(&mut rng_resource.rng);
+    exponential_sample = Exp::new(this.foi).unwrap().sample(&mut rng_resource.rng);
   }
 
   if uniform_sample < probability_of_infection {
@@ -69,7 +74,7 @@ fn attempt_infection(world: &mut World) {
     next_attempt_time = timeline.now() + exponential_sample / (stats.size() as f64);
 
     // Schedule the next infection attempt if there are time and susceptible people left
-    if next_attempt_time <= MAX_TIME && stats.susceptible > 0 {
+    if next_attempt_time <= this.max_time && stats.susceptible > 0 {
       // Too noisy
       // #[cfg(feature = "print_messages")]
       // println!("Scheduling next infection attempt at {}", next_attempt_time);
@@ -84,15 +89,22 @@ fn attempt_infection(world: &mut World) {
 
 }
 
+#[derive(Resource, Copy, Clone, Debug)]
+pub struct TransmissionManager{
+  max_time: Time,
+  foi: f64
+}
 
-// Holds no state
-#[derive(Resource)]
-pub struct TransmissionManager ;
+impl TransmissionManager {
+  pub fn new(max_time: Time, foi: f64) -> Self {
+    Self {max_time, foi}
+  }
+}
 
 impl Module for TransmissionManager {
-  fn initialize_with_world(world: &mut World, _schedule: &mut Schedule) {
+  fn initialize_with_world(self, world: &mut World) -> Option<SystemConfigs>{
     // Insert a new instance into the world
-    world.insert_resource(TransmissionManager);
+    world.insert_resource(self);
 
     // Schedule the first infection attempt
     let mut timeline = world.get_resource_mut::<Timeline>().unwrap();
@@ -105,5 +117,7 @@ impl Module for TransmissionManager {
 
     #[cfg(feature = "print_messages")]
     println!("Initialized module TransmissionManager");
+
+    None // No systems
   }
 }

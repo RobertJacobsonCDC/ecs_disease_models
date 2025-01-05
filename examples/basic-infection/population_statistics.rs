@@ -12,16 +12,16 @@ two situations in which we must monitor for changes:
 
 use std::fmt::Display;
 use bevy_ecs::prelude::*;
-
+use bevy_ecs::schedule::SystemConfigs;
 use ecs_disease_models::{
   model::{ExecutionPhase, ModelControl},
   module::Module
 };
 
-use crate::{InfectionStatus, POPULATION};
+use crate::InfectionStatus;
 
 /// Tracks summary statistics for the world.
-#[derive(Resource, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
+#[derive(Resource, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
 pub struct PopulationStatistics {
   pub susceptible: u32,
   pub infected: u32,
@@ -29,6 +29,13 @@ pub struct PopulationStatistics {
 }
 
 impl PopulationStatistics {
+  pub fn with_size(size: u32) -> Self {
+    PopulationStatistics{
+      susceptible: size,
+      infected: 0,
+      recovered: 0,
+    }
+  }
 
   /// Returns a total count of people in this population
   pub fn size(&self) -> u32 {
@@ -128,22 +135,13 @@ fn track_population_changes(
 }
 
 impl Module for PopulationStatistics {
-  fn initialize_with_world(world: &mut World, schedule: &mut Schedule) {
-    let stats = PopulationStatistics {
-      susceptible: POPULATION,
-      infected: 0,
-      recovered: 0,
-    };
+  fn initialize_with_world(self, world: &mut World) -> Option<SystemConfigs>{
+    println!("Initialized module PopulationStatistics");
+    #[cfg(feature = "print_messages")]
 
-    world.insert_resource(stats);
+    world.insert_resource(self);
 
     // Also set up change monitors that keep these statistics up to date.
-    schedule.add_systems(
-        // handle_spawned_infected.in_set(ExecutionPhase::Normal),
-        track_population_changes.in_set(ExecutionPhase::Normal)
-    );
-
-    #[cfg(feature = "print_messages")]
-    println!("Initialized module PopulationStatistics");
+    Some(track_population_changes.in_set(ExecutionPhase::Normal))
   }
 }
