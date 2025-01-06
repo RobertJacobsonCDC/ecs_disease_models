@@ -12,7 +12,7 @@ downside to this choice is the assumption that the module insert itself into the
 
 An alternative design could be that the `Module`'s constructor takes a `&mut Model`, but that spreads the
 implementation details, at least the public API, of `Model` everywhere, whereas `World` has (for our purposes)
-a fixed API.
+a fixed API. Full Bevy takes this route: https://bevy-cheatbook.github.io/programming/plugins.html.
 
 */
 

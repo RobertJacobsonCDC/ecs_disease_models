@@ -48,7 +48,7 @@ mod infection_manager;
 mod incidence_reporter;
 
 use std::fmt::{Display, Formatter};
-
+use std::path::PathBuf;
 use bevy_ecs::prelude::*;
 use ordered_float::OrderedFloat;
 use serde::{Deserialize, Serialize};
@@ -57,7 +57,8 @@ use ecs_disease_models::{
   model::Model,
   timeline::Time
 };
-
+use ecs_disease_models::model::ExecutionPhase;
+use ecs_disease_models::report::ReporterConfiguration;
 use crate::{
   population_statistics::PopulationStatistics,
   infection_manager::InfectionManager,
@@ -70,7 +71,7 @@ static SEED              : u64  = 123;
 static MAX_TIME          : Time = OrderedFloat(303.0);
 static FOI               : f64  = 0.1;
 static INFECTION_DURATION: f64  = 5.0;
-static OUTPUT_FILE       : &'static str = "./examples/basic-infection/incidence_report.csv";
+static OUTPUT_DIR        : &'static str = "./examples/basic-infection";
 
 /**
 All people have exactly one of these states. In fact, because this is the only property
@@ -99,7 +100,19 @@ fn main() {
   model.add_module(PopulationStatistics::with_size(POPULATION));
   model.add_module(TransmissionManager::new(MAX_TIME, FOI));
   model.add_module(InfectionManager::new(INFECTION_DURATION));
-  model.add_module(IncidenceReporter::new(OUTPUT_FILE));
+
+  // A more thought-through API would make this less awkward.
+  let report_config = ReporterConfiguration::new(
+    "basic_infection_".to_string(),
+    PathBuf::from(OUTPUT_DIR),
+    true
+  );
+  model.add_module(report_config);
+
+  model.add_module(IncidenceReporter::new("incidence".to_string()));
+  // ToDo: Having to add this separately is an awkward pattern.
+  model.add_systems(incidence_reporter::track_status_changes.in_set(ExecutionPhase::Normal));
+
 
   model.run()
 }

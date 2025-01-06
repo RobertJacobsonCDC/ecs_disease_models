@@ -32,6 +32,7 @@ pub struct Parameters{
   pub synth_population_file: PathBuf,
 }
 
+
 impl Parameters {
   pub fn from_file(path: &PathBuf) -> Result<Parameters, IxaError>{
     let mut file = File::open(path)?;

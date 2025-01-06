@@ -11,7 +11,7 @@ plays the role of `App` in full Bevy.
 */
 
 use bevy_ecs::prelude::*;
-
+use bevy_ecs::schedule::SystemConfigs;
 use crate::{
   random::RngResource,
   module::Module,
@@ -104,6 +104,11 @@ impl Model {
     if let Some(systems) = module.initialize_with_world(&mut self.world) {
       self.schedule.add_systems(systems);
     }
+  }
+
+  /// Adds the systems to the schedule. This is used for systems that aren't added by a module.
+  pub fn add_systems(&mut self, systems: SystemConfigs) {
+    self.schedule.add_systems(systems);
   }
 
 
